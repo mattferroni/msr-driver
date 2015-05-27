@@ -16,6 +16,7 @@ Load kernel module and check if everything is ok:
 ```
 sudo ./install
 dmesg -e
+lsmod | grep msrdrv
 ```
 
 Compile and run the test code:
