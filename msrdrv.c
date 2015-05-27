@@ -8,6 +8,38 @@
 /* Comment this to disable debug */
 #define _MG_DEBUG 0
 
+/* Data structures to be read */
+struct MsrInOut msr_start[] = {
+    { MSR_WRITE, 0x38f, 0x00, 0x00 },       // ia32_perf_global_ctrl: disable 4 PMCs & 3 FFCs
+    { MSR_WRITE, 0xc1, 0x00, 0x00 },        // ia32_pmc0: zero value (35-5)
+    { MSR_WRITE, 0xc2, 0x00, 0x00 },        // ia32_pmc1: zero value (35-5)
+    { MSR_WRITE, 0xc3, 0x00, 0x00 },        // ia32_pmc2: zero value (35-5)
+    { MSR_WRITE, 0xc4, 0x00, 0x00 },        // ia32_pmc3: zero value (35-5)
+    { MSR_WRITE, 0x309, 0x00, 0x00 },       // ia32_fixed_ctr0: zero value (35-17)
+    { MSR_WRITE, 0x30a, 0x00, 0x00 },       // ia32_fixed_ctr1: zero value (35-17)
+    { MSR_WRITE, 0x30b, 0x00, 0x00 },       // ia32_fixed_ctr2: zero value (35-17)
+    { MSR_WRITE, 0x186, 0x004101c2, 0x00 }, // ia32_perfevtsel1, UOPS_RETIRED.ALL (19-28)
+    { MSR_WRITE, 0x187, 0x0041010e, 0x00 }, // ia32_perfevtsel0, UOPS_ISSUED.ANY (19.22)
+    { MSR_WRITE, 0x188, 0x01c1010e, 0x00 }, // ia32_perfevtsel2, UOPS_ISSUED.ANY-stalls (19-22)
+    { MSR_WRITE, 0x189, 0x004101a2, 0x00 }, // ia32_perfevtsel3, RESOURCE_STALLS.ANY (19-27)
+    { MSR_WRITE, 0x38d, 0x222, 0x00 },      // ia32_perf_fixed_ctr_ctrl: ensure 3 FFCs enabled
+    { MSR_WRITE, 0x38f, 0x0f, 0x07 },       // ia32_perf_global_ctrl: enable 4 PMCs & 3 FFCs
+    { MSR_STOP, 0x00, 0x00 }
+};
+
+struct MsrInOut msr_stop[] = {
+    { MSR_WRITE, 0x38f, 0x00, 0x00 },       // ia32_perf_global_ctrl: disable 4 PMCs & 3 FFCs
+    { MSR_WRITE, 0x38d, 0x00, 0x00 },       // ia32_perf_fixed_ctr_ctrl: clean up FFC ctrls
+    { MSR_READ, 0xc1, 0x00 },               // ia32_pmc0: read value (35-5)
+    { MSR_READ, 0xc2, 0x00 },               // ia32_pmc1: read value (35-5)
+    { MSR_READ, 0xc3, 0x00 },               // ia32_pmc2: read value (35-5)
+    { MSR_READ, 0xc4, 0x00 },               // ia32_pmc3: read value (35-5)
+    { MSR_READ, 0x309, 0x00 },              // ia32_fixed_ctr0: read value (35-17)
+    { MSR_READ, 0x30a, 0x00 },              // ia32_fixed_ctr1: read value (35-17)
+    { MSR_READ, 0x30b, 0x00 },              // ia32_fixed_ctr2: read value (35-17)
+    { MSR_STOP, 0x00, 0x00 }
+};
+
 
 #ifdef _MG_DEBUG
 #define dprintk(args...) printk(args);
@@ -92,7 +124,9 @@ static long msrdrv_ioctl(struct file *f, unsigned int ioctl_num, unsigned long i
     if (ioctl_num != IOCTL_MSR_CMDS) {
             return 0;
     }
-    msrops = (struct MsrInOut*)ioctl_param;
+
+    /* Start measurements */
+    msrops = (struct MsrInOut*)msr_start;
     for (i = 0 ; i <= MSR_VEC_LIMIT ; i++, msrops++) {
         switch (msrops->op) {
         case MSR_NOP:
@@ -100,7 +134,7 @@ static long msrdrv_ioctl(struct file *f, unsigned int ioctl_num, unsigned long i
             break;
         case MSR_STOP:
             dprintk(KERN_ALERT "Module " DEV_NAME ": seen MSR_STOP command\n")
-            goto label_end;
+            goto init_completed;
         case MSR_READ:
             dprintk(KERN_ALERT "Module " DEV_NAME ": seen MSR_READ command\n")
             msrops->value = read_msr(msrops->ecx);
@@ -118,7 +152,46 @@ static long msrdrv_ioctl(struct file *f, unsigned int ioctl_num, unsigned long i
             return 1;
         }
     }
-    label_end:
+    init_completed:
+
+    printk("This is a hex number 0x%x\n", -1);
+
+    /* End measurements */
+    msrops = (struct MsrInOut*)msr_stop;
+    for (i = 0 ; i <= MSR_VEC_LIMIT ; i++, msrops++) {
+        switch (msrops->op) {
+        case MSR_NOP:
+            dprintk(KERN_ALERT "Module " DEV_NAME ": seen MSR_NOP command\n")
+            break;
+        case MSR_STOP:
+            dprintk(KERN_ALERT "Module " DEV_NAME ": seen MSR_STOP command\n")
+            goto read_completed;
+        case MSR_READ:
+            dprintk(KERN_ALERT "Module " DEV_NAME ": seen MSR_READ command\n")
+            msrops->value = read_msr(msrops->ecx);
+            break;
+        case MSR_WRITE:
+            dprintk(KERN_ALERT "Module " DEV_NAME ": seen MSR_WRITE command\n")
+            write_msr(msrops->ecx, msrops->eax, msrops->edx);
+            break;
+        case MSR_RDTSC:
+            dprintk(KERN_ALERT "Module " DEV_NAME ": seen MSR_RDTSC command\n")
+            msrops->value = read_tsc();
+            break;
+        default:
+            dprintk(KERN_ALERT "Module " DEV_NAME ": Unknown option 0x%x\n", msrops->op)
+            return 1;
+        }
+    }
+    read_completed:
+
+    printk("uops retired:    %7lld\n", msr_stop[2].value);
+    printk("uops issued:     %7lld\n", msr_stop[3].value);
+    printk("stalled cycles:  %7lld\n", msr_stop[4].value);
+    printk("resource stalls: %7lld\n", msr_stop[5].value);
+    printk("instr retired:   %7lld\n", msr_stop[6].value);
+    printk("core cycles:     %7lld\n", msr_stop[7].value);
+    printk("ref cycles:      %7lld\n", msr_stop[8].value);
 
     return 0;
 }
