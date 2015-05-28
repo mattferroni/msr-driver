@@ -10,7 +10,7 @@
 
 /* Data structures to be read */
 struct MsrInOut msr_start[] = {
-    { MSR_WRITE, 0x38f, 0x00, 0x00 },       // ia32_perf_global_ctrl: disable 4 PMCs & 3 FFCs
+    { MSR_WRITE, 0x38f, 0x00, 0x00 },       // ia32_perf_global_ctrl: disable 4 PMCs (PrograMmable Counters) & 3 FFCs (Fixed Function Counters, count just one type of event)
     { MSR_WRITE, 0xc1, 0x00, 0x00 },        // ia32_pmc0: zero value (35-5)
     { MSR_WRITE, 0xc2, 0x00, 0x00 },        // ia32_pmc1: zero value (35-5)
     { MSR_WRITE, 0xc3, 0x00, 0x00 },        // ia32_pmc2: zero value (35-5)
@@ -18,10 +18,10 @@ struct MsrInOut msr_start[] = {
     { MSR_WRITE, 0x309, 0x00, 0x00 },       // ia32_fixed_ctr0: zero value (35-17)
     { MSR_WRITE, 0x30a, 0x00, 0x00 },       // ia32_fixed_ctr1: zero value (35-17)
     { MSR_WRITE, 0x30b, 0x00, 0x00 },       // ia32_fixed_ctr2: zero value (35-17)
-    { MSR_WRITE, 0x186, 0x004101c2, 0x00 }, // ia32_perfevtsel1, UOPS_RETIRED.ALL (19-28)
-    { MSR_WRITE, 0x187, 0x0041010e, 0x00 }, // ia32_perfevtsel0, UOPS_ISSUED.ANY (19.22)
-    { MSR_WRITE, 0x188, 0x01c1010e, 0x00 }, // ia32_perfevtsel2, UOPS_ISSUED.ANY-stalls (19-22)
-    { MSR_WRITE, 0x189, 0x004101a2, 0x00 }, // ia32_perfevtsel3, RESOURCE_STALLS.ANY (19-27)
+    { MSR_WRITE, 0x186, 0x004201C2, 0x00 }, // ia32_perfevtsel1, UOPS_RETIRED.ALL (19-28)           NOTE - just user-land: 0x004101c2
+    { MSR_WRITE, 0x187, 0x0042010E, 0x00 }, // ia32_perfevtsel0, UOPS_ISSUED.ANY (19.22)            NOTE - just user-land: 0x0041010e
+    { MSR_WRITE, 0x188, 0x01C2010E, 0x00 }, // ia32_perfevtsel2, UOPS_ISSUED.ANY-stalls (19-22)     NOTE - just user-land: 0x01c1010e
+    { MSR_WRITE, 0x189, 0x004201A2, 0x00 }, // ia32_perfevtsel3, RESOURCE_STALLS.ANY (19-27)        NOTE - just user-land: 0x004101a2
     { MSR_WRITE, 0x38d, 0x222, 0x00 },      // ia32_perf_fixed_ctr_ctrl: ensure 3 FFCs enabled
     { MSR_WRITE, 0x38f, 0x0f, 0x07 },       // ia32_perf_global_ctrl: enable 4 PMCs & 3 FFCs
     { MSR_STOP, 0x00, 0x00 }
@@ -73,7 +73,7 @@ static int msrdrv_release(struct inode* i, struct file* f)
 
 
 /* Custom method header */
-static long msrdrv_ioctl(struct file *f, unsigned int ioctl_num, unsigned long ioctl_param);
+static long msrdrv_ioctl(struct file *f, unsigned int ioctl_num);
 
 
 /* Kernel module data structures */
@@ -117,10 +117,10 @@ static long long read_tsc(void)
 
 
 /* Read/write handler */
-static long msrdrv_ioctl(struct file *f, unsigned int ioctl_num, unsigned long ioctl_param)
+static long msrdrv_ioctl(struct file *f, unsigned int ioctl_num)
 {
     struct MsrInOut *msrops;
-    int i;
+    int i, j;
     if (ioctl_num != IOCTL_MSR_CMDS) {
             return 0;
     }
@@ -154,7 +154,10 @@ static long msrdrv_ioctl(struct file *f, unsigned int ioctl_num, unsigned long i
     }
     init_completed:
 
-    printk("This is a hex number 0x%x\n", -1);
+    for (j = 0 ; j <= 1000000000 ; j++) {
+        j += 17;
+    }
+    printk("This is j: %d\n", j);
 
     /* End measurements */
     msrops = (struct MsrInOut*)msr_stop;
