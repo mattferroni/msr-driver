@@ -75,6 +75,8 @@ static void write_msr(int ecx, unsigned int eax, unsigned int edx) {
 /* Read/write handler */
 static long msrdrv_ioctl(struct file *f, unsigned int ioctl_num)
 {
+    unsigned long long ia32_pmc0, ia32_pmc1, ia32_pmc2, ia32_pmc3, 
+                        ia32_fixed_ctr0, ia32_fixed_ctr1, ia32_fixed_ctr2;
     struct MsrInOut *msrops;
     int i, j;
     if (ioctl_num != IOCTL_MSR_CMDS) {
@@ -116,13 +118,13 @@ static long msrdrv_ioctl(struct file *f, unsigned int ioctl_num)
     /* Read counters */
     write_msr(0x38f, 0x00, 0x00);                              /* ia32_perf_global_ctrl: disable 4 PMCs & 3 FFCs */
     write_msr(0x38d, 0x00, 0x00);                              /* ia32_perf_fixed_ctr_ctrl: clean up FFC ctrls */
-    unsigned long long ia32_pmc0 = read_msr(0xc1);             /* ia32_pmc0: read value (35-5) */    
-    unsigned long long ia32_pmc1 = read_msr(0xc2);             /* ia32_pmc1: read value (35-5) */    
-    unsigned long long ia32_pmc2 = read_msr(0xc3);             /* ia32_pmc2: read value (35-5) */    
-    unsigned long long ia32_pmc3 = read_msr(0xc4);             /* ia32_pmc3: read value (35-5) */    
-    unsigned long long ia32_fixed_ctr0 = read_msr(0x309);      /* ia32_fixed_ctr0: read value (35-17) */
-    unsigned long long ia32_fixed_ctr1 = read_msr(0x30a);      /* ia32_fixed_ctr1: read value (35-17) */
-    unsigned long long ia32_fixed_ctr2 = read_msr(0x30b);      /* ia32_fixed_ctr2: read value (35-17) */
+    ia32_pmc0 = read_msr(0xc1);             /* ia32_pmc0: read value (35-5) */    
+    ia32_pmc1 = read_msr(0xc2);             /* ia32_pmc1: read value (35-5) */    
+    ia32_pmc2 = read_msr(0xc3);             /* ia32_pmc2: read value (35-5) */    
+    ia32_pmc3 = read_msr(0xc4);             /* ia32_pmc3: read value (35-5) */    
+    ia32_fixed_ctr0 = read_msr(0x309);      /* ia32_fixed_ctr0: read value (35-17) */
+    ia32_fixed_ctr1 = read_msr(0x30a);      /* ia32_fixed_ctr1: read value (35-17) */
+    ia32_fixed_ctr2 = read_msr(0x30b);      /* ia32_fixed_ctr2: read value (35-17) */
 
     printk("uops retired:    %7lld\n", ia32_pmc0);
     printk("uops issued:     %7lld\n", ia32_pmc1);

@@ -19,4 +19,4 @@ gcc -g -I. -O2 -o msrtest msrtest.c
 echo "Fixing permissions and unload driver ---"
 sudo ./uninstall.sh
 chown matteo:matteo *
-dmesg
+# dmesg
