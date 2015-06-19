@@ -154,7 +154,7 @@ static long msrdrv_ioctl(struct file *f, unsigned int ioctl_num)
     }
     init_completed:
 
-    for (j = 0 ; j <= 1000000000 ; j++) {
+    for (j = 0 ; j <= 1000 ; j++) {
         j += 17;
     }
     printk("This is j: %d\n", j);
