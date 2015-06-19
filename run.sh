@@ -6,7 +6,7 @@ if [ "$(whoami)" != "root" ] ; then
 fi
 
 echo "Make and install ---"
-make
+make -Wall
 make install
 echo "Load kernel module and check if everything is ok ---"
 chmod +x *.sh
