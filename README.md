@@ -25,3 +25,13 @@ Compile and run the test code:
 gcc -g -I. -O2 -o msrtest msrtest.c
 ./msrtest
 ```
+
+
+# Misc
+
+Use asm_exec.c to execute and test a single assembly intruction. 
+
+```
+gcc asm_exec.c
+./a.out
+```
